@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-import sys
+import argparse
 import logging
 import datetime
 import iso8601
@@ -203,22 +203,37 @@ def merge_gpx_hrm(gpx, hrm, tz):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print('specify gpx && hrm files; tz ([+-]HHMM); output file')
-        sys.exit(1)
+    argparser = argparse.ArgumentParser(
+        description='Merge `gpx` and `hrm` files and upload to Strava'
+    )
+    argparser.add_argument(
+        'gpx', help='.gpx input file'
+    )
+    argparser.add_argument(
+        'hrm', help='.hrm input file'
+    )
+    argparser.add_argument(
+        'out', help='.gpx output file'
+    )
+    argparser.add_argument(
+        '--tz', help='timezone to use for all timestamps, [+-HHMM] format, default to UTC',
+        default='+0000'
+    )
 
-    gpx_path = sys.argv[1]
+    args = argparser.parse_args()
+
+    gpx_path = args.gpx
     gpx10_tree = ElementTree.parse(gpx_path)
     gpx11_tree = convert_gpx_trk_10_11(gpx10_tree)
 
-    hrm_path = sys.argv[2]
+    hrm_path = args.hrm
     hrmParser = HrmParser(hrm_path)
     hrmParser.parse()
 
-    tz = sys.argv[3]
+    tz = args.tz
     tz = datetime.datetime.strptime(tz, '%z').tzinfo
 
-    output_path = sys.argv[4]
+    output_path = args.out
 
     merged_gpx_tree = merge_gpx_hrm(gpx11_tree, hrmParser, tz)
     root = merged_gpx_tree.getroot()
