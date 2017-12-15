@@ -2,15 +2,47 @@
 
 
 import argparse
-import logging
+import logging, logging.config
 import datetime
 import iso8601
 from xml.etree import ElementTree
 from collections import OrderedDict
 
 
-logging.basicConfig(level=logging.DEBUG)
-LOG = logging.getLogger(__name__)
+LOG_LEVELS = (
+    'WARNING',
+    'INFO',
+    'DEBUG',
+)
+
+LOG_DFAULT_VERBOSITY = 'WARNING'
+LOG_CONFIG = {
+    'version': 1,
+    'formatters': {
+        'msg': {
+            'format': '%(levelname)s: %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'msg',
+        },
+    },
+    'loggers': {
+        '__main__': {
+            'level': LOG_DFAULT_VERBOSITY,
+            'propagate': False,
+            'handlers': ('console', ),
+        },
+    },
+    'root': {
+        'level': 'WARNING',
+        'handlers': ('console', ),
+    }
+}
+
+LOG = None
 
 GPX_10_NS = 'http://www.topografix.com/GPX/1/0'
 GPX_11_NS = 'http://www.topografix.com/GPX/1/1'
@@ -25,6 +57,30 @@ ElementTree.register_namespace('gpx10', GPX_10_NS)
 # https://stackoverflow.com/a/8998773
 ElementTree.register_namespace('', GPX_11_NS)
 ElementTree.register_namespace('gpxtpx', GPXTPX_NS)
+
+
+def _get_log_lvl(verbosity):
+    if verbosity < 0:
+        return LOG_LEVELS[0]
+
+    if verbosity > len(LOG_LEVELS)-1:
+        return LOG_LEVELS[-1]
+
+    return LOG_LEVELS[verbosity]
+
+def _get_log_cfg(lvl):
+    cfg = LOG_CONFIG.copy()
+    cfg['loggers']['__main__']['level'] = lvl
+
+    return cfg
+
+def _configure_logging(verbosity):
+    global LOG
+
+    log_level = _get_log_lvl(verbosity)
+    log_cfg = _get_log_cfg(log_level)
+    logging.config.dictConfig(log_cfg)
+    LOG = logging.getLogger(__name__)
 
 
 class HrmParser:
@@ -219,14 +275,23 @@ def main():
         '--tz', help='timezone to use for all timestamps, [+-HHMM] format, default to UTC',
         default='+0000'
     )
+    argparser.add_argument(
+        '-v', help='verbosity',
+        action='count', default=0,
+        dest='verbosity'
+    )
 
     args = argparser.parse_args()
+    _configure_logging(args.verbosity)
 
     gpx_path = args.gpx
+    LOG.info('parse gpx')
     gpx10_tree = ElementTree.parse(gpx_path)
+    LOG.info('converg gpx 1.0 -> 1.1')
     gpx11_tree = convert_gpx_trk_10_11(gpx10_tree)
 
     hrm_path = args.hrm
+    LOG.info('parse hrm')
     hrmParser = HrmParser(hrm_path)
     hrmParser.parse()
 
@@ -235,6 +300,7 @@ def main():
 
     output_path = args.out
 
+    LOG.info('merge gpx and hrm')
     merged_gpx_tree = merge_gpx_hrm(gpx11_tree, hrmParser, tz)
     root = merged_gpx_tree.getroot()
     root.attrib.update({
@@ -242,7 +308,10 @@ def main():
         'version': '1.1',
     })
 
+    LOG.info('save result')
     merged_gpx_tree.write(output_path, encoding='UTF-8', xml_declaration=True)
+
+    LOG.info('done!')
 
 
 if __name__ == '__main__':
