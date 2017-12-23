@@ -8,6 +8,7 @@ import iso8601
 import json
 import webbrowser
 import urllib
+import time
 from xml.etree import ElementTree
 from collections import OrderedDict
 from requests_oauthlib import OAuth2Session
@@ -334,6 +335,46 @@ def check_oauth(config_path):
     return oa_client
 
 
+def upload_activity(oa_client, track_path):
+    form = {
+        'private': 1,
+        'data_type': 'gpx',
+    }
+
+    with open(track_path) as ifd:
+        files = {'file': ifd}
+
+        rsp = oa_client.post(
+            'https://www.strava.com/api/v3/uploads',
+            data=form, files=files
+        )
+
+    processing_status = 'Your activity is still being processed.'
+    completed = False
+
+    while not completed:
+        LOG.debug('status %d; "%s"', rsp.status_code, rsp.text)
+
+        status = rsp.json()
+        LOG.info('upload %d -- %s', status['id'], status['status'])
+
+        completed = not status['status'] == processing_status
+        if not completed:
+            time.sleep(2)
+            url = 'https://www.strava.com/api/v3/uploads/{id}'.format(
+                id=status['id']
+            )
+            rsp = oa_client.get(url)
+
+    if not status['error'] == None:
+        LOG.info('%s', status['error'])
+    if not status['activity_id'] == None:
+        activity_url = 'https://www.strava.com/activities/{id}'.format(
+            id=status['activity_id']
+        )
+        LOG.info('Plase find your activity at %s', activity_url)
+
+
 def main():
     argparser = argparse.ArgumentParser(
         description='Merge `gpx` and `hrm` files and upload to Strava'
@@ -392,7 +433,10 @@ def main():
     merged_gpx_tree.write(output_path, encoding='UTF-8', xml_declaration=True)
 
     LOG.info('check strava authorization')
-    check_oauth(args.oauth)
+    oa_client = check_oauth(args.oauth)
+
+    LOG.info('upload track')
+    upload_activity(oa_client, output_path)
 
     LOG.info('done!')
 
