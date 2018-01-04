@@ -59,6 +59,13 @@ NS = {
     'gpxtpx': GPXTPX_NS,
 }
 
+ACTIVITY_TYPES = (
+    'ride', 'run', 'swim', 'workout', 'hike', 'walk', 'nordicski',
+    'alpineski', 'backcountryski', 'iceskate', 'inlineskate',
+    'kitesurf', 'rollerski', 'windsurf', 'snowboard', 'snowshoe',
+    'ebikeride', 'virtualride',
+)
+
 ElementTree.register_namespace('gpx10', GPX_10_NS)
 # https://stackoverflow.com/a/8998773
 ElementTree.register_namespace('', GPX_11_NS)
@@ -335,11 +342,14 @@ def check_oauth(config_path):
     return oa_client
 
 
-def upload_activity(oa_client, track_path):
+def upload_activity(oa_client, track_path, atype=None):
     form = {
         'private': 1,
         'data_type': 'gpx',
     }
+
+    if atype:
+        form['activity_type'] = atype
 
     with open(track_path) as ifd:
         files = {'file': ifd}
@@ -401,6 +411,10 @@ def main():
         '--oauth', help='OAuth config path, default to ~/.config/strvup/oauth.json',
         default='~/.config/strvup/oauth.json',
     )
+    argparser.add_argument(
+        '--type', help='Activity type',
+        choices=ACTIVITY_TYPES,
+    )
 
     args = argparser.parse_args()
     _configure_logging(args.verbosity)
@@ -436,7 +450,7 @@ def main():
     oa_client = check_oauth(args.oauth)
 
     LOG.info('upload track')
-    upload_activity(oa_client, output_path)
+    upload_activity(oa_client, output_path, args.type)
 
     LOG.info('done!')
 
