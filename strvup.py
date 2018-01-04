@@ -422,7 +422,7 @@ def main():
     gpx_path = args.gpx
     LOG.info('parse gpx')
     gpx10_tree = ElementTree.parse(gpx_path)
-    LOG.info('converg gpx 1.0 -> 1.1')
+    LOG.info('convert gpx 1.0 -> 1.1')
     gpx11_tree = convert_gpx_trk_10_11(gpx10_tree)
 
     hrm_path = args.hrm
@@ -449,7 +449,7 @@ def main():
     LOG.info('check strava authorization')
     oa_client = check_oauth(args.oauth)
 
-    LOG.info('upload track')
+    LOG.info('upload activity')
     upload_activity(oa_client, output_path, args.type)
 
     LOG.info('done!')
