@@ -422,8 +422,14 @@ def main():
     gpx_path = args.gpx
     LOG.info('parse gpx')
     gpx10_tree = ElementTree.parse(gpx_path)
-    LOG.info('convert gpx 1.0 -> 1.1')
-    gpx11_tree = convert_gpx_trk_10_11(gpx10_tree)
+
+    root = gpx10_tree.getroot()
+    gpx_version = root.attrib.get('version', '1.0')
+    if gpx_version == '1.1':
+        gpx11_tree = gpx10_tree
+    else:
+        LOG.info('convert gpx 1.0 -> 1.1')
+        gpx11_tree = convert_gpx_trk_10_11(gpx10_tree)
 
     hrm_path = args.hrm
     LOG.info('parse hrm')
