@@ -273,9 +273,12 @@ def merge_gpx_hrm(gpx, hrm, tz):
         delta = int((pt_time - hr_start).total_seconds())
         hr_sample = hr_samples[delta]
 
-        exts = ElementTree.SubElement(
-            point, '{{{}}}extensions'.format(GPX_11_NS)
-        )
+        exts = point.find('gpx11:extensions', NS)
+        if exts is None:
+            exts = ElementTree.SubElement(
+                point, '{{{}}}extensions'.format(GPX_11_NS)
+            )
+
         tpx = ElementTree.SubElement(
             exts, '{{{}}}TrackPointExtension'.format(GPXTPX_NS)
         )
