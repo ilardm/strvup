@@ -97,6 +97,10 @@ def main():
         '--type', help='Activity type',
         choices=strvup.ACTIVITY_TYPES,
     )
+    argparser.add_argument(
+        '--no-upload', help='do not upload merged files',
+        action='store_true',
+    )
 
     args = argparser.parse_args()
     _configure_logging(args.verbosity)
@@ -104,11 +108,14 @@ def main():
     LOG.info('process files')
     strvup.process_files(args.gpx, args.hrm, args.tz, args.out)
 
-    LOG.info('check strava authorization')
-    oa_client = oauth.check_oauth(args.oauth)
+    if not args.no_upload:
+        LOG.info('check strava authorization')
+        oa_client = oauth.check_oauth(args.oauth)
 
-    LOG.info('upload activity')
-    strvup.upload_activity(oa_client, args.out, args.type)
+        LOG.info('upload activity')
+        strvup.upload_activity(oa_client, args.out, args.type)
+    else:
+        LOG.debug('no upload requested')
 
     LOG.info('done!')
 
