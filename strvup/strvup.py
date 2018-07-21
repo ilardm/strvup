@@ -1,10 +1,12 @@
 import logging
+import os
+import tempfile
 import time
 import datetime
 from xml.etree import ElementTree
 
 
-from . import gpx, hrmparser
+from . import gpx, hrmparser, oauth
 
 LOG = logging.getLogger('strvup.strvup')
 
@@ -17,7 +19,49 @@ ACTIVITY_TYPES = (
 )
 
 
-def process_files(gpx_path, hrm_path, tz, out_path):
+def run(files, tz_offset, oauth_path, activity_type, no_upload, save_merged):
+    uploads = []
+    unlinks = []
+
+    for gpxfname in files:
+        LOG.info('process file %s', gpxfname)
+
+        basename = os.path.splitext(gpxfname)[0]
+        hrm = basename + '.hrm'
+
+        if save_merged:
+            out = basename + '_hrm.gpx'
+        else:
+            outfile = tempfile.NamedTemporaryFile(prefix='strvup', delete=False)
+            out = outfile.name
+            unlinks.append(out)
+
+        LOG.debug('output file %s', out)
+
+        process_files(gpxfname, hrm, tz_offset, out)
+
+        if not no_upload:
+            uploads.append((gpxfname, out))
+
+    if uploads:
+        LOG.info('check strava authorization')
+        oa_client = oauth.check_oauth(oauth_path)
+
+        for original, upload in uploads:
+            LOG.info('upload activity %s', original)
+            upload_activity(oa_client, upload, activity_type)
+    else:
+        LOG.debug('no upload requested')
+
+    if unlinks:
+        for fname in unlinks:
+            LOG.debug('unlink %s', fname)
+            os.unlink(fname)
+
+    LOG.info('done!')
+
+
+def process_files(gpx_path, hrm_path, tz_offset, out_path):
     LOG.info('parse gpx')
     gpx10_tree = ElementTree.parse(gpx_path)
 
