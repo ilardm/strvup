@@ -126,7 +126,7 @@ def upload_activity(oa_client, track_path, atype=None):
             rsp = oa_client.get(url)
 
     if not status['error'] == None:
-        LOG.info('%s', status['error'])
+        LOG.error('%s', status['error'])
     if not status['activity_id'] == None:
         activity_url = 'https://www.strava.com/activities/{id}'.format(
             id=status['activity_id']

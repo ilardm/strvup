@@ -28,7 +28,7 @@ LOG_CONFIG = {
         },
     },
     'loggers': {
-        '__main__': {
+        'strvup': {
             'level': LOG_DFAULT_VERBOSITY,
             'propagate': False,
             'handlers': ('console', ),
@@ -54,7 +54,7 @@ def _get_log_lvl(verbosity):
 
 def _get_log_cfg(lvl):
     cfg = LOG_CONFIG.copy()
-    cfg['loggers']['__main__']['level'] = lvl
+    cfg['loggers']['strvup']['level'] = lvl
 
     return cfg
 
