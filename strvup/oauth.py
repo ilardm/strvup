@@ -2,8 +2,8 @@ import logging
 import json
 import webbrowser
 import urllib
-from requests_oauthlib import OAuth2Session
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from requests_oauthlib import OAuth2Session
 
 
 LOG = logging.getLogger('strvup.oauth')

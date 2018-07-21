@@ -1,8 +1,8 @@
 import logging
 import datetime
-import iso8601
 from xml.etree import ElementTree
 from collections import OrderedDict
+import iso8601
 
 
 LOG = logging.getLogger('strvup.gpx')
@@ -87,7 +87,7 @@ def convert_gpx_trk_10_11(gpx10):
     return gpx11
 
 
-def merge_gpx_hrm(gpx, hrm, tz):
+def merge_gpx_hrm(gpx, hrm, tz_offset):
     root = gpx.getroot()
 
     points = root.findall('.//gpx11:trkpt', NS)
@@ -100,7 +100,7 @@ def merge_gpx_hrm(gpx, hrm, tz):
     for point in points:
         pt_time_tag = point.find('gpx11:time', NS)
         pt_time = iso8601.parse_date(pt_time_tag.text)
-        pt_time_tag.text = pt_time.replace(tzinfo=tz).isoformat()
+        pt_time_tag.text = pt_time.replace(tzinfo=tz_offset).isoformat()
 
         delta = int((pt_time - hr_start).total_seconds())
         hr_sample = hr_samples[delta]
@@ -114,9 +114,9 @@ def merge_gpx_hrm(gpx, hrm, tz):
         tpx = ElementTree.SubElement(
             exts, '{{{}}}TrackPointExtension'.format(GPXTPX_NS)
         )
-        hr = ElementTree.SubElement(
+        hre = ElementTree.SubElement(
             tpx, '{{{}}}hr'.format(GPXTPX_NS)
         )
-        hr.text = str(hr_sample)
+        hre.text = str(hr_sample)
 
     return gpx

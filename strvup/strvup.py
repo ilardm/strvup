@@ -74,13 +74,13 @@ def process_files(gpx_path, hrm_path, tz_offset, out_path):
         gpx11_tree = gpx.convert_gpx_trk_10_11(gpx10_tree)
 
     LOG.info('parse hrm')
-    hrmParser = hrmparser.HrmParser(hrm_path)
-    hrmParser.parse()
+    hrm_parser = hrmparser.HrmParser(hrm_path)
+    hrm_parser.parse()
 
-    tz = datetime.datetime.strptime(tz, '%z').tzinfo
+    tz_offset = datetime.datetime.strptime(tz_offset, '%z').tzinfo
 
     LOG.info('merge gpx and hrm')
-    merged_gpx_tree = gpx.merge_gpx_hrm(gpx11_tree, hrmParser, tz)
+    merged_gpx_tree = gpx.merge_gpx_hrm(gpx11_tree, hrm_parser, tz_offset)
     root = merged_gpx_tree.getroot()
     root.attrib.update({
         'creator': 'strvup.py',
@@ -125,9 +125,12 @@ def upload_activity(oa_client, track_path, atype=None):
             )
             rsp = oa_client.get(url)
 
-    if not status['error'] == None:
+    error = status.get('error')
+    if error is not None:
         LOG.error('%s', status['error'])
-    if not status['activity_id'] == None:
+
+    activity_id = status.get('activity_id')
+    if activity_id is not None:
         activity_url = 'https://www.strava.com/activities/{id}'.format(
             id=status['activity_id']
         )
