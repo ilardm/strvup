@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 
+import os
+
 import argparse
 import logging, logging.config
 
@@ -72,13 +74,8 @@ def main():
         description='Merge `gpx` and `hrm` files and upload to Strava'
     )
     argparser.add_argument(
-        'gpx', help='.gpx input file'
-    )
-    argparser.add_argument(
-        'hrm', help='.hrm input file'
-    )
-    argparser.add_argument(
-        'out', help='.gpx output file'
+        'gpx', help='.gpx input file(s)',
+        nargs='+',
     )
     argparser.add_argument(
         '--tz', help='timezone to use for all timestamps, [+-HHMM] format, default to UTC',
@@ -105,15 +102,26 @@ def main():
     args = argparser.parse_args()
     _configure_logging(args.verbosity)
 
-    LOG.info('process files')
-    strvup.process_files(args.gpx, args.hrm, args.tz, args.out)
+    uploads = []
+
+    for gpx in args.gpx:
+        LOG.info('process file %s', gpx)
+
+        basename = os.path.splitext(gpx)[0]
+        hrm = basename + '.hrm'
+        out = basename + '_hrm.gpx'
+
+        strvup.process_files(gpx, hrm, args.tz, out)
+
+        uploads.append((gpx, out))
 
     if not args.no_upload:
         LOG.info('check strava authorization')
         oa_client = oauth.check_oauth(args.oauth)
 
-        LOG.info('upload activity')
-        strvup.upload_activity(oa_client, args.out, args.type)
+        for original, upload in uploads:
+            LOG.info('upload activity %s', original)
+            strvup.upload_activity(oa_client, upload, args.type)
     else:
         LOG.debug('no upload requested')
 
