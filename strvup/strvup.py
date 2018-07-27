@@ -19,7 +19,7 @@ ACTIVITY_TYPES = (
 )
 
 
-def run(files, tz_offset, oauth_path, activity_type, no_upload, save_merged):
+def run(files, tz_offset, oauth_path, activity_type, no_upload, save_merged, merge):
     uploads = []
     unlinks = []
 
@@ -40,10 +40,30 @@ def run(files, tz_offset, oauth_path, activity_type, no_upload, save_merged):
 
         process_files(gpxfname, hrm, tz_offset, out)
 
-        if not no_upload:
-            uploads.append((gpxfname, out))
+        uploads.append((gpxfname, out))
 
-    if uploads:
+    if merge and len(uploads) > 1:
+        if save_merged:
+            base = uploads[0][0]
+
+            filenames = [u[0] for u in uploads]
+            filenames = [os.path.basename(f) for f in filenames]
+            filenames = [os.path.splitext(f)[0] for f in filenames]
+            filename = '_'.join(filenames) + os.path.splitext(base)[1]
+            out = os.path.join(os.path.dirname(base), filename)
+        else:
+            outfile = tempfile.NamedTemporaryFile(prefix='strvup', delete=False)
+            out = outfile.name
+            unlinks.append(out)
+
+        filenames = [u[1] for u in uploads]
+        base, filenames = filenames[0], filenames[1:]
+
+        merge_files(base, filenames, out)
+
+        uploads = [('merged file', out)]
+
+    if not no_upload:
         LOG.info('check strava authorization')
         oa_client = oauth.check_oauth(oauth_path)
 
@@ -89,6 +109,20 @@ def process_files(gpx_path, hrm_path, tz_offset, out_path):
 
     LOG.info('save result')
     merged_gpx_tree.write(out_path, encoding='UTF-8', xml_declaration=True)
+
+
+def merge_files(base_path, other_paths, out_path):
+    LOG.debug('parse base gpx %s', base_path)
+    base_tree = ElementTree.parse(base_path)
+
+    LOG.debug('parse other gpxs %r', other_paths)
+    other_trees = [ElementTree.parse(p) for p in other_paths]
+
+    LOG.info('merge gpx files')
+    merged = gpx.merge_gpxs(base_tree, other_trees)
+
+    LOG.info('save merged result')
+    merged.write(out_path, encoding='UTF-8', xml_declaration=True)
 
 
 def upload_activity(oa_client, track_path, atype=None):

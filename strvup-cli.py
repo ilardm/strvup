@@ -103,6 +103,10 @@ def main():
         '--save-merged', help='save merged gpx+hrm in filesystem',
         action='store_true',
     )
+    argparser.add_argument(
+        '--merge', help='merge multiple files into one',
+        action='store_true',
+    )
 
     args = argparser.parse_args()
     _configure_logging(args.verbosity)

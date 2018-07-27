@@ -120,3 +120,17 @@ def merge_gpx_hrm(gpx, hrm, tz_offset):
         hre.text = str(hr_sample)
 
     return gpx
+
+def merge_gpxs(base, others):
+    root = base.getroot()
+
+    root_trk = root.find('.//gpx11:trk', NS)
+
+    for other in others:
+        other_root = other.getroot()
+
+        other_trksegs = other_root.findall('.//gpx11:trkseg', NS)
+        for trkseg in other_trksegs:
+            root_trk.append(trkseg)
+
+    return base
