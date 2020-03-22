@@ -32,7 +32,7 @@ def check_oauth(config_path):
     oa_client = OAuth2Session(
         client_id=config.get('client_id'),
         redirect_uri=config.get('redirect_uri'),
-        scope=['write'],
+        scope=['read,activity:write'],
         token=config.get('token'),
     )
 
